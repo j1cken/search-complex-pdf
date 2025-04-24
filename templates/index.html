@@ -158,12 +158,30 @@
                             const resultsDiv =
                                 document.getElementById("results");
                             resultsDiv.innerHTML = "";
-                            data.file_paths.forEach((filename) => {
+                            data.file_paths.forEach((filename, index) => {
                                 const img = document.createElement("img");
                                 img.src = `/static/${filename}`;
                                 img.onclick = () =>
                                     showModal(`/static/${filename}`);
-                                resultsDiv.appendChild(img);
+
+                                // Create a container for the image and label
+                                const container = document.createElement("div");
+                                container.style.display = "flex";
+                                container.style.flexDirection = "column";
+                                container.style.alignItems = "center";
+
+                                // Add the image to the container
+                                container.appendChild(img);
+
+                                // Add a label with the score
+                                const label = document.createElement("div");
+                                label.textContent = `Score: ${data.img_scores[index]}`;
+                                label.style.marginTop = "5px";
+                                label.style.fontSize = "12px";
+                                container.appendChild(label);
+
+                                // Add the container to the results
+                                resultsDiv.appendChild(container);
                             });
 
                             // Display the Elasticsearch response time
