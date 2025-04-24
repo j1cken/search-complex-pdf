@@ -14,11 +14,11 @@ app = Flask(__name__,static_folder='static')
 load_dotenv("elastic.env")
 INDEX_NAME = os.getenv("index-name")
 es_url = os.getenv("elastic_url")
-es_api = os.getenv("elastic_api")
+es_api_key = os.getenv("elastic_api_key")
 google_api_key = os.getenv("google_api_key")
 
 client = genai.Client(api_key=google_api_key)
-es = Elasticsearch(es_url, api_key=es_api)
+es = Elasticsearch(es_url, api_key=es_api_key)
 
 model_name = "vidore/colpali-v1.3"
 model = ColPali.from_pretrained(
@@ -43,7 +43,7 @@ if not es.indices.exists(index=INDEX_NAME):
 def index():
     if request.method == 'POST':
         query = request.form.get('search_string')
-        
+
         # Measure Elasticsearch query time
         start_time = time.time()
         es_query = {
@@ -59,13 +59,13 @@ def index():
             },
             "size": 5,
         }
-        
+
         results = es.search(index=INDEX_NAME, body=es_query)
         es_time = time.time() - start_time
 
         file_paths = [os.path.basename(hit['_id']) for hit in results['hits']['hits']]
         image_paths = [hit['_id'] for hit in results['hits']['hits']]
-        
+
         # Measure Google Gemini query time
         start_time = time.time()
         images = [Image.open(image_path) for image_path in image_paths]
@@ -74,12 +74,11 @@ def index():
             contents=[images, query + " Answer the question in not more than 10 sentences. Result should be an easy-to-read paragraph. Only use the information on the images to answer the question."]
         )
         google_time = time.time() - start_time
-        
+
         # Return file paths and response times
         return jsonify(file_paths=file_paths, response_text=response.text, es_time=es_time, google_time=google_time)
-    
+
     return render_template('index.html', file_paths=[], response_text="", es_time=0, google_time=0)
 
 if __name__ == '__main__':
     app.run(debug=False)
-    

@@ -9,7 +9,7 @@ import sys
 load_dotenv("elastic.env")
 INDEX_NAME = os.getenv("index-name")
 es_url = os.getenv("elastic_url")
-es_api = os.getenv("elastic_api")
+es_api_key = os.getenv("elastic_api_key")
 
 model_name = "vidore/colpali-v1.3"
 
@@ -38,7 +38,7 @@ mappings = {
 }
 
 # Connect to Elasticsearch
-es = Elasticsearch(es_url, api_key=es_api)
+es = Elasticsearch(es_url, api_key=es_api_key)
 
 # Check if the index already exists
 if es.indices.exists(index=INDEX_NAME):
@@ -58,6 +58,5 @@ for file_name in os.listdir(directory_path):
     file_path = os.path.join(directory_path, file_name)
     # Check if it's a file (not a directory)
     if os.path.isfile(file_path):
-        vectors = create_col_poli_image_vectors(file_path)    
+        vectors = create_col_poli_image_vectors(file_path)
         es.index(index=INDEX_NAME, id=file_path, document={"col_pali_vectors": vectors})
-
