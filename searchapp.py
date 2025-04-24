@@ -8,6 +8,7 @@ import sys
 from google import genai
 from PIL import Image
 import time
+import numpy as np
 
 app = Flask(__name__,static_folder='static')
 
@@ -39,6 +40,15 @@ if not es.indices.exists(index=INDEX_NAME):
     print(f"Index '{INDEX_NAME}' doesn't exists. Exiting script.")
     sys.exit()
 
+def to_bit_vectors(embeddings: list) -> list:
+    return [
+        np.packbits(np.where(np.array(embedding) > 0, 1, 0))
+        .astype(np.int8)
+        .tobytes()
+        .hex()
+        for embedding in embeddings
+    ]
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -60,23 +70,43 @@ def index():
             "size": 5,
         }
 
+        # ... bitvector search
+        # query_vector = to_bit_vectors(create_col_pali_query_vectors(query))
+        # es_query = {
+        #     "_source": False,
+        #     "query": {
+        #         "script_score": {
+        #             "query": {
+        #                 "match_all": {}
+        #             },
+        #             "script": {
+        #                 "source": "maxSimInvHamming(params.query_vector, 'col_pali_vectors')",
+        #                 "params": {
+        #                     "query_vector": query_vector
+        #                 }
+        #             }
+        #         }
+        #     },
+        #     "size": 5
+        # }
+
         results = es.search(index=INDEX_NAME, body=es_query)
         es_time = time.time() - start_time
 
         file_paths = [os.path.basename(hit['_id']) for hit in results['hits']['hits']]
-        image_paths = [hit['_id'] for hit in results['hits']['hits']]
+        # image_paths = [hit['_id'] for hit in results['hits']['hits']]
 
         # Measure Google Gemini query time
-        start_time = time.time()
-        images = [Image.open(image_path) for image_path in image_paths]
-        response = client.models.generate_content(
-            model="gemini-2.5-pro-preview-03-25",
-            contents=[images, query + " Answer the question in not more than 10 sentences. Result should be an easy-to-read paragraph. Only use the information on the images to answer the question."]
-        )
-        google_time = time.time() - start_time
+        # start_time = time.time()
+        # images = [Image.open(image_path) for image_path in image_paths]
+        # response = client.models.generate_content(
+        #     model="gemini-2.5-pro-preview-03-25",
+        #     contents=[images, query + " Answer the question in not more than 10 sentences. Result should be an easy-to-read paragraph. Only use the information on the images to answer the question."]
+        # )
+        # google_time = time.time() - start_time
 
         # Return file paths and response times
-        return jsonify(file_paths=file_paths, response_text=response.text, es_time=es_time, google_time=google_time)
+        return jsonify(file_paths=file_paths, response_text="", es_time=es_time, google_time=0)
 
     return render_template('index.html', file_paths=[], response_text="", es_time=0, google_time=0)
 

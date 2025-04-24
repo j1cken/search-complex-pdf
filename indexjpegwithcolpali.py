@@ -5,6 +5,7 @@ from colpali_engine.models import ColPali, ColPaliProcessor
 from elasticsearch import Elasticsearch
 import os
 import sys
+import numpy as np
 
 load_dotenv("elastic.env")
 INDEX_NAME = os.getenv("index-name")
@@ -26,12 +27,22 @@ def create_col_poli_image_vectors(image_path: str) -> list:
     with torch.no_grad():
         return model(**batch_images).tolist()[0]
 
+def to_bit_vectors(embeddings: list) -> list:
+    return [
+        np.packbits(np.where(np.array(embedding) > 0, 1, 0))
+        .astype(np.int8)
+        .tobytes()
+        .hex()
+        for embedding in embeddings
+    ]
+
 # Index mapping
 mappings = {
     "mappings": {
         "properties": {
             "col_pali_vectors": {
-                "type": "rank_vectors"
+                "type": "rank_vectors",
+                "element_type": "bit"
             }
         }
     }
@@ -58,5 +69,6 @@ for file_name in os.listdir(directory_path):
     file_path = os.path.join(directory_path, file_name)
     # Check if it's a file (not a directory)
     if os.path.isfile(file_path):
-        vectors = create_col_poli_image_vectors(file_path)
-        es.index(index=INDEX_NAME, id=file_path, document={"col_pali_vectors": vectors})
+        vectors = to_bit_vectors(create_col_poli_image_vectors(file_path))
+        # es.index(index=INDEX_NAME, id=file_path, document={"col_pali_vectors": vectors})
+        print(vectors)
