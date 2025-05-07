@@ -70,5 +70,5 @@ for file_name in os.listdir(directory_path):
     # Check if it's a file (not a directory)
     if os.path.isfile(file_path):
         vectors = to_bit_vectors(create_col_poli_image_vectors(file_path))
-        # es.index(index=INDEX_NAME, id=file_path, document={"col_pali_vectors": vectors})
-        print(vectors)
+        es.index(index=INDEX_NAME, id=file_path, document={"col_pali_vectors": vectors})
+        # print(vectors)
