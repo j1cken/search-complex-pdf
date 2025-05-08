@@ -117,18 +117,56 @@
         <div class="search-container">
             <h1>Search complex PDF (text and graphics)</h1>
             <form id="searchForm">
+            <select id="indexSelect" name="index" class="form-control">
+                <!-- Will be populated from the server -->
+            </select>
+            <script>
+                // Fetch available indices when page loads
+                document.addEventListener('DOMContentLoaded', function() {
+                    fetch('/indices')
+                        .then(response => response.json())
+                        .then(data => {
+                          // console.log(data)
+                            const indexSelect = document.getElementById('indexSelect');
+                            indexSelect.innerHTML = '';
+
+                            data.forEach(index => {
+                                // Only add indices that don't start with '.'
+                                if (!index.startsWith('.')) {
+                                    const option = document.createElement('option');
+                                    option.value = index;
+                                    option.textContent = index;
+                                    indexSelect.appendChild(option);
+                                }
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error fetching indices:', error);
+                        });
+                });
+            </script>
+
+            <br id="searchForm">
                 <input
                     type="text"
                     name="search_string"
                     placeholder="Enter search string"
                 />
+                <button type="submit">Search</button>
+                </br>
                 <input
                     type="checkbox"
                     name="llm"
                     placeholder="Should LLM respond"
                 />
                 <label for="llm">LLM?</label>
-                <button type="submit">Search</button>
+                <input
+                    type="checkbox"
+                    name="refresh_indices"
+                    placeholder="Refresh indices?"
+                />
+                <label for="refresh_indices">Refresh indices?</label>
+
             </form>
         </div>
         <div class="results" id="results"></div>
@@ -158,11 +196,13 @@
                             const resultsDiv =
                                 document.getElementById("results");
                             resultsDiv.innerHTML = "";
-                            data.file_paths.forEach((filename, index) => {
+                            data.images.forEach((filename, index) => {
                                 const img = document.createElement("img");
-                                img.src = `/static/${filename}`;
+                                img.src = `data:image/jpeg;base64,${data.images[index]}`;
                                 img.onclick = () =>
-                                    showModal(`/static/${filename}`);
+                                    showModal(
+                                        `data:image/jpeg;base64,${data.images[index]}`,
+                                    );
 
                                 // Create a container for the image and label
                                 const container = document.createElement("div");
@@ -175,7 +215,7 @@
 
                                 // Add a label with the score
                                 const label = document.createElement("div");
-                                label.textContent = `Score: ${data.img_scores[index]}`;
+                                label.textContent = `${data.pdfs[index]} | ${data.img_scores[index]}`;
                                 label.style.marginTop = "5px";
                                 label.style.fontSize = "12px";
                                 container.appendChild(label);

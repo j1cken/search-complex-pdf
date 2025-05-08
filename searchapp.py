@@ -9,11 +9,12 @@ from google import genai
 from PIL import Image
 import time
 import numpy as np
+import base64
+import io
 
-app = Flask(__name__,static_folder='static')
+app = Flask(__name__)
 
 load_dotenv("elastic.env")
-INDEX_NAME = os.getenv("index-name")
 es_url = os.getenv("elastic_url")
 es_api_key = os.getenv("elastic_api_key")
 google_api_key = os.getenv("google_api_key")
@@ -37,11 +38,6 @@ def create_col_pali_query_vectors(query: str) -> list:
     with torch.no_grad():
         return model(**queries).tolist()[0]
 
-# Check if the index exists
-if not es.indices.exists(index=INDEX_NAME):
-    print(f"Index '{INDEX_NAME}' doesn't exists. Exiting script.")
-    sys.exit()
-
 def to_bit_vectors(embeddings: list) -> list:
     return [
         np.packbits(np.where(np.array(embedding) > 0, 1, 0))
@@ -51,16 +47,27 @@ def to_bit_vectors(embeddings: list) -> list:
         for embedding in embeddings
     ]
 
+@app.route('/indices', methods=['GET'])
+def get_es_indices():
+    # Get all indices from Elasticsearch
+    es_indices_info = es.indices.get_alias(index='*', expand_wildcards='all')
+    # print(es_indices_info.keys())
+    es_indices = list(es_indices_info.keys())
+    # print(es_indices)
+    return jsonify(es_indices)
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         query = request.form.get('search_string')
         llm = request.form.get('llm')
+        index_name = request.form.get('index')
+        # print(index_name)
 
         # Measure Elasticsearch query time
         start_time = time.time()
         es_query = {
-            "_source": False,
+            "_source": ["image", "pdf"],
             "query": {
                 "script_score": {
                     "query": {"match_all": {}},
@@ -93,22 +100,23 @@ def index():
         #     "size": 5
         # }
 
-        results = es.search(index=INDEX_NAME, body=es_query)
+        results = es.search(index=index_name, body=es_query)
         #es_time = time.time() - start_time
         es_time = results['took'] / 1000
 
-        file_paths = [os.path.basename(hit['_id']) for hit in results['hits']['hits']]
-        image_paths = [hit['_id'] for hit in results['hits']['hits']]
-
-        image_scores = [(hit['_score']) for hit in results['hits']['hits']]
-        print(image_scores)
+        # print(results["hits"]['hits'])
+        images_base64 = [hit['_source']['image'] for hit in results['hits']['hits']]
+        pdfs = [hit['_source']['pdf'] for hit in results['hits']['hits']]
+        image_scores = [hit['_score'] for hit in results['hits']['hits']]
+        # print(image_scores)
 
         # Measure Google Gemini query time
         google_time = 0
         rsptext = ""
         if llm:
             start_time = time.time()
-            images = [Image.open(image_path) for image_path in image_paths]
+
+            images = [Image.open(io.BytesIO(base64.b64decode(img_base64))) for img_base64 in images_base64]
             response = client.models.generate_content(
                 model=google_model,
                 contents=[images, query + " Answer the question in not more than 10 sentences. Result should be an easy-to-read paragraph. Only use the information on the images to answer the question."]
@@ -117,9 +125,9 @@ def index():
             google_time = time.time() - start_time
 
         # Return file paths and response times
-        return jsonify(file_paths=file_paths, response_text=rsptext, es_time=es_time, google_time=google_time, img_scores=image_scores)
+        return jsonify(index=index_name, pdfs=pdfs, images=images_base64, response_text=rsptext, es_time=es_time, google_time=google_time, img_scores=image_scores)
 
-    return render_template('index.html', file_paths=[], response_text="", es_time=0, google_time=0, img_scores=[])
+    return render_template('index.html', pdfs=[], images=[], response_text="", es_time=0, google_time=0, img_scores=[])
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(port=8000,debug=False)
