@@ -79,6 +79,7 @@ def index():
             },
             "size": 5,
         }
+        # print(es_query)
 
         # ... bitvector search
         # query_vector = to_bit_vectors(create_col_pali_query_vectors(query))

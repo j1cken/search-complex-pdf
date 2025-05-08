@@ -105,6 +105,10 @@ def index_it(index_name, pdf_file, output_folder):
         file_path = os.path.join(output_folder, file_name)
         # Check if it's an image file with allowed extension
         if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+            if pdf_file=="":
+                pdf_name = file_name
+            else:
+                pdf_name = pdf_file
             # Convert image to base64 representation
             with open(file_path, "rb") as img_file:
                 imageb64 = base64.b64encode(img_file.read()).decode('utf-8')
@@ -113,11 +117,10 @@ def index_it(index_name, pdf_file, output_folder):
             if os.path.isfile(file_path):
                 vectors = to_bit_vectors(create_col_poli_image_vectors(file_path))
                 # es.index(index=INDEX_NAME, id=file_name, document={"col_pali_vectors": vectors, "image": imageb64})
-                yield {"_index": index_name, "col_pali_vectors": vectors, "image": imageb64, "pdf": pdf_file}
+                yield {"_index": index_name, "col_pali_vectors": vectors, "image": imageb64, "pdf": pdf_name}
                 # print(vectors)
 
 def main():
-
     # Get the command-line arguments
     if len(sys.argv) < 3:
         print("Usage: python script.py <index_name> <pdf_path>")
@@ -126,7 +129,15 @@ def main():
     INDEX_NAME = sys.argv[1]
     pdf_path = sys.argv[2]
 
+    # Check if the index already exists
+    if es.indices.exists(index=INDEX_NAME):
+        print(f"WARNING: Index '{INDEX_NAME}' already exists.")
+    else:
+        # Create the index if it doesn't exist
+        es.indices.create(index=INDEX_NAME, body=mappings)
+
     # Recursively walk through directories to find all PDF files
+    plain_imgs_dirs = set()
     for root, dirs, files in os.walk(pdf_path):
         for pdf_file in files:
             if pdf_file.lower().endswith('.pdf'):
@@ -139,14 +150,13 @@ def main():
                     continue
                 pdf_to_jpeg(pdf_fqpath, output_folder)
 
-                # Check if the index already exists
-                if es.indices.exists(index=INDEX_NAME):
-                    print(f"WARNING: Index '{INDEX_NAME}' already exists.")
-                else:
-                    # Create the index if it doesn't exist
-                    es.indices.create(index=INDEX_NAME, body=mappings)
-
                 helpers.bulk(es, index_it(INDEX_NAME, pdf_file, output_folder))
+
+            if pdf_file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                plain_imgs_dirs.add(root)
+
+    for dir in plain_imgs_dirs:
+        helpers.bulk(es, index_it(INDEX_NAME, "", dir))
 
 if __name__ == "__main__":
     main()
