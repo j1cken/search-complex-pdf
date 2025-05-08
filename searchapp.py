@@ -125,7 +125,7 @@ def index():
             google_time = time.time() - start_time
 
         # Return file paths and response times
-        return jsonify(index=index_name, pdfs=pdfs, images=images_base64, response_text=rsptext, es_time=es_time, google_time=google_time, img_scores=image_scores)
+        return jsonify(index=index_name, pdfs=pdfs, images=images_base64, response_text=rsptext, es_time=es_time, google_time=google_time, img_scores=image_scores, llm_model=google_model)
 
     return render_template('index.html', pdfs=[], images=[], response_text="", es_time=0, google_time=0, img_scores=[])
 

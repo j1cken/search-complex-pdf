@@ -169,10 +169,16 @@
 
             </form>
         </div>
+
+        <div class="response-text" id="esTimeText">
+            <div class="response-header">Elasticsearch</div>
+            <div id="esTimeContent"></div>
+        </div>
+
         <div class="results" id="results"></div>
 
         <div class="response-text" id="responseText">
-            <div class="response-header">Google Gemini summary</div>
+            <div class="response-header">LLM summary</div>
             <div id="responseContent"></div>
         </div>
 
@@ -193,9 +199,18 @@
                     })
                         .then((response) => response.json())
                         .then((data) => {
+                            const esTimeContent =
+                              document.getElementById("esTimeContent");
+                            esTimeContent.textContent = "Query Time";
+                            const esTimeDiv = document.createElement("div");
+                            // Display the Elasticsearch response time
+                            esTimeDiv.textContent = `${data.es_time.toFixed(2)} seconds\n`;
+                            esTimeContent.appendChild(esTimeDiv);
+
                             const resultsDiv =
                                 document.getElementById("results");
                             resultsDiv.innerHTML = "";
+
                             data.images.forEach((filename, index) => {
                                 const img = document.createElement("img");
                                 img.src = `data:image/jpeg;base64,${data.images[index]}`;
@@ -224,17 +239,12 @@
                                 resultsDiv.appendChild(container);
                             });
 
-                            // Display the Elasticsearch response time
-                            const esTimeDiv = document.createElement("div");
-                            esTimeDiv.textContent = `Elastic response time: ${data.es_time.toFixed(2)} seconds`;
-                            resultsDiv.appendChild(esTimeDiv);
-
                             // Display the Google Gemini response text and time
                             const responseContent =
                                 document.getElementById("responseContent");
                             responseContent.textContent = data.response_text;
                             const googleTimeDiv = document.createElement("div");
-                            googleTimeDiv.textContent = `\nGoogle Gemini response time: ${data.google_time.toFixed(2)} seconds`;
+                            googleTimeDiv.textContent = `\n${data.llm_model} response time: ${data.google_time.toFixed(2)} seconds`;
                             responseContent.appendChild(googleTimeDiv);
                         })
                         .catch((error) => {
