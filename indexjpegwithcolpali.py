@@ -19,7 +19,7 @@ es_url = os.getenv("elastic_url")
 es_api_key = os.getenv("elastic_api_key")
 
 # Connect to Elasticsearch
-es = Elasticsearch(es_url, api_key=es_api_key)
+es = Elasticsearch(es_url, api_key=es_api_key, verify_certs=True)
 
 model_name = "vidore/colpali-v1.3"
 
