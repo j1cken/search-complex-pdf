@@ -5,7 +5,6 @@ from colpali_engine.models import ColPali, ColPaliProcessor
 from elasticsearch import Elasticsearch
 import os
 import sys
-from google import genai
 from PIL import Image
 import time
 import numpy as np
@@ -17,12 +16,8 @@ app = Flask(__name__)
 load_dotenv("elastic.env")
 es_url = os.getenv("elastic_url")
 es_api_key = os.getenv("elastic_api_key")
-google_api_key = os.getenv("google_api_key")
 
-google_model = "gemini-2.0-flash-lite"
-
-client = genai.Client(api_key=google_api_key)
-es = Elasticsearch(es_url, api_key=es_api_key)
+es = Elasticsearch(es_url, api_key=es_api_key, verify_certs=True)
 
 model_name = "vidore/colpali-v1.3"
 model = ColPali.from_pretrained(
@@ -79,27 +74,6 @@ def index():
             },
             "size": 5,
         }
-        # print(es_query)
-
-        # ... bitvector search
-        # query_vector = to_bit_vectors(create_col_pali_query_vectors(query))
-        # es_query = {
-        #     "_source": False,
-        #     "query": {
-        #         "script_score": {
-        #             "query": {
-        #                 "match_all": {}
-        #             },
-        #             "script": {
-        #                 "source": "maxSimInvHamming(params.query_vector, 'col_pali_vectors')",
-        #                 "params": {
-        #                     "query_vector": query_vector
-        #                 }
-        #             }
-        #         }
-        #     },
-        #     "size": 5
-        # }
 
         results = es.search(index=index_name, body=es_query)
         #es_time = time.time() - start_time
@@ -117,16 +91,35 @@ def index():
         if llm:
             start_time = time.time()
 
-            images = [Image.open(io.BytesIO(base64.b64decode(img_base64))) for img_base64 in images_base64]
-            response = client.models.generate_content(
-                model=google_model,
-                contents=[images, query + " Answer the question in not more than 10 sentences. Result should be an easy-to-read paragraph. Only use the information on the images to answer the question."]
-            )
-            rsptext = response.text
+            # images = [Image.open(io.BytesIO(base64.b64decode(img_base64))) for img_base64 in images_base64]
+
+            # Send images to Ollama chat API to generate a summary
+            import requests
+
+            ollama_url = "http://localhost:11434/api/generate"
+            ollama_model = "llava:13b"  # or another multimodal model available in Ollama
+
+            ollama_payload = {
+                "model": ollama_model,
+                "role": "user",
+                "prompt": f"Answer this question: {query}. Use the images only.",
+                "stream": False,
+                "images": images_base64[:1],
+            }
+
+            try:
+                ollama_response = requests.post(ollama_url, json=ollama_payload, timeout=60)
+                ollama_response.raise_for_status()
+                # print(ollama_response.json())
+                ollama_summary = ollama_response.json().get("response", {})
+            except Exception as e:
+                ollama_summary = f"Ollama error: {e}"
+
+            rsptext = ollama_summary
             google_time = time.time() - start_time
 
         # Return file paths and response times
-        return jsonify(index=index_name, pdfs=pdfs, images=images_base64, response_text=rsptext, es_time=es_time, google_time=google_time, img_scores=image_scores, llm_model=google_model)
+        return jsonify(index=index_name, pdfs=pdfs, images=images_base64, response_text=rsptext, es_time=es_time, google_time=google_time, img_scores=image_scores, llm_model=ollama_model)
 
     return render_template('index.html', pdfs=[], images=[], response_text="", es_time=0, google_time=0, img_scores=[])
 
