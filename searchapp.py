@@ -16,6 +16,7 @@ app = Flask(__name__)
 load_dotenv("elastic.env")
 es_url = os.getenv("elastic_url")
 es_api_key = os.getenv("elastic_api_key")
+ollama_host = os.getenv("ollama_host")
 
 es = Elasticsearch(es_url, api_key=es_api_key, verify_certs=True)
 
@@ -96,8 +97,10 @@ def index():
             # Send images to Ollama chat API to generate a summary
             import requests
 
-            ollama_url = "http://localhost:11434/api/generate"
-            ollama_model = "llava:13b"  # or another multimodal model available in Ollama
+            ollama_url = f"http://{ollama_host}:11434/api/generate"
+            # ollama_model = "llava:13b"  # or another multimodal model available in Ollama
+            # ollama_model = "llava-llama3:8b"  # or another multimodal model available in Ollama
+            ollama_model = "minicpm-v:8b"  # or another multimodal model available in Ollama
 
             ollama_payload = {
                 "model": ollama_model,
