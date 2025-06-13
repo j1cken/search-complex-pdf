@@ -72,22 +72,22 @@ def create_col_poli_image_vectors(image_path: str) -> list:
     with torch.no_grad():
         return model(**batch_images).tolist()[0]
 
-def to_bit_vectors(embeddings: list) -> list:
-    return [
-        np.packbits(np.where(np.array(embedding) > 0, 1, 0))
-        .astype(np.int8)
-        .tobytes()
-        .hex()
-        for embedding in embeddings
-    ]
-
 # Index mapping
 mappings = {
     "mappings": {
         "properties": {
             "col_pali_vectors": {
-                "type": "rank_vectors",
-                "element_type": "bit"
+                "type": "nested",
+                "properties": {
+                    "rectangle": {
+                        "type": "dense_vector",
+                        "similarity": "dot_product",
+                        "index": True,
+                        "index_options": {
+                            "type": "int8_hnsw"
+                        }
+                    }
+                }
             },
             "image": {
                 "type": "binary"
@@ -115,9 +115,11 @@ def index_it(index_name, pdf_file, output_folder):
 
             # Check if it's a file (not a directory)
             if os.path.isfile(file_path):
-                vectors = to_bit_vectors(create_col_poli_image_vectors(file_path))
+                vectors = create_col_poli_image_vectors(file_path)
+                embeddings = [ { "rectangle": embed } for embed in vectors]
+                # print(f"{pdf_name}: {embeddings}")
                 # es.index(index=INDEX_NAME, id=file_name, document={"col_pali_vectors": vectors, "image": imageb64})
-                yield {"_index": index_name, "col_pali_vectors": vectors, "image": imageb64, "pdf": pdf_name}
+                yield {"_index": index_name, "col_pali_vectors": embeddings, "image": imageb64, "pdf": pdf_name}
                 # print(vectors)
 
 def main():

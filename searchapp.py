@@ -60,22 +60,23 @@ def index():
         index_name = request.form.get('index')
         # print(index_name)
 
+        query_vec = create_col_pali_query_vectors(query)
+        # print(query_vec)
         # Measure Elasticsearch query time
         start_time = time.time()
         es_query = {
             "_source": ["image", "pdf"],
-            "query": {
-                "script_score": {
-                    "query": {"match_all": {}},
-                    "script": {
-                        "source": "maxSimDotProduct(params.query_vector, 'col_pali_vectors')",
-                        "params": {"query_vector": create_col_pali_query_vectors(query)},
-                    },
-                }
-            },
+            "query": {"match_all": {}},
+            "knn": [ {
+                "field": "col_pali_vectors.rectangle",
+                "query_vector": queryv,
+                "k": 1,
+                "num_candidates": 10
+            } for queryv in query_vec],
             "size": 5,
         }
 
+        # print(es_query)
         results = es.search(index=index_name, body=es_query)
         #es_time = time.time() - start_time
         es_time = results['took'] / 1000
@@ -89,6 +90,10 @@ def index():
         # Measure Google Gemini query time
         google_time = 0
         rsptext = ""
+        # ollama_model = "llava:13b"  # or another multimodal model available in Ollama
+        # ollama_model = "llava-llama3:8b"  # or another multimodal model available in Ollama
+        ollama_model = "minicpm-v:8b"  # or another multimodal model available in Ollama
+
         if llm:
             start_time = time.time()
 
@@ -98,9 +103,6 @@ def index():
             import requests
 
             ollama_url = f"http://{ollama_host}:11434/api/generate"
-            # ollama_model = "llava:13b"  # or another multimodal model available in Ollama
-            # ollama_model = "llava-llama3:8b"  # or another multimodal model available in Ollama
-            ollama_model = "minicpm-v:8b"  # or another multimodal model available in Ollama
 
             ollama_payload = {
                 "model": ollama_model,
