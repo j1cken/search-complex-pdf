@@ -140,8 +140,13 @@ def main():
 
     # Recursively walk through directories to find all PDF files
     plain_imgs_dirs = set()
+    counter = 0
     for root, dirs, files in os.walk(pdf_path):
-        for pdf_file in files:
+        print(f"found {len(files)} files to index ...")
+        for idx, pdf_file in enumerate(files):
+            if idx % 10 == 0:
+                counter += 10
+                print(f"indexed {counter} files")
             if pdf_file.lower().endswith('.pdf'):
                 pdf_fqpath = os.path.join(root, pdf_file)
                 # Use a temporary directory as output_folder
