@@ -99,8 +99,8 @@ mappings = {
     }
 }
 
-def index_it(index_name, pdf_file, output_folder):
-    for file_name in os.listdir(output_folder):
+def index_it(index_name, pdf_file, output_folder, batch):
+    for file_name in batch:
         # Construct full file path
         file_path = os.path.join(output_folder, file_name)
         # Check if it's an image file with allowed extension
@@ -144,13 +144,23 @@ def main():
                 pdf_fqpath = os.path.join(root, pdf_file)
                 # Use a temporary directory as output_folder
                 output_folder = os.path.join(tempfile.gettempdir(), 'pdf_images_' + str(uuid.uuid4()))
+                print(output_folder)
                 # Convert PDF to JPEG images
                 if not is_valid_pdf(pdf_fqpath):
                     print(f"Invalid PDF file: {pdf_path}/{pdf_file}")
                     continue
                 pdf_to_jpeg(pdf_fqpath, output_folder)
 
-                helpers.bulk(es, index_it(INDEX_NAME, pdf_file, output_folder))
+                batch_size = 10
+                batch = []
+                total = 0
+                for file_name in os.listdir(output_folder):
+                    batch.append(file_name)
+                    if len(batch) == batch_size:
+                        helpers.bulk(es, index_it(INDEX_NAME, pdf_file, output_folder, batch))
+                        total += batch_size
+                        print(f"done with {total}")
+                        batch = []
 
             if pdf_file.lower().endswith(('.png', '.jpg', '.jpeg')):
                 plain_imgs_dirs.add(root)
