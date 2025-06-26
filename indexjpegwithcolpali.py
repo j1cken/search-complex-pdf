@@ -103,22 +103,24 @@ def index_it(index_name, pdf_file, output_folder, batch):
     for file_name in batch:
         # Construct full file path
         file_path = os.path.join(output_folder, file_name)
+        print(file_path)
         # Check if it's an image file with allowed extension
         if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
             if pdf_file=="":
                 pdf_name = file_name
             else:
                 pdf_name = pdf_file
-            # Convert image to base64 representation
-            with open(file_path, "rb") as img_file:
-                imageb64 = base64.b64encode(img_file.read()).decode('utf-8')
 
-            # Check if it's a file (not a directory)
-            if os.path.isfile(file_path):
-                vectors = to_bit_vectors(create_col_poli_image_vectors(file_path))
-                # es.index(index=INDEX_NAME, id=file_name, document={"col_pali_vectors": vectors, "image": imageb64})
-                yield {"_index": index_name, "col_pali_vectors": vectors, "image": imageb64, "pdf": pdf_name}
-                # print(vectors)
+        # Convert image to base64 representation
+        with open(file_path, "rb") as img_file:
+            imageb64 = base64.b64encode(img_file.read()).decode('utf-8')
+
+        # Check if it's a file (not a directory)
+        if os.path.isfile(file_path):
+            vectors = to_bit_vectors(create_col_poli_image_vectors(file_path))
+            # es.index(index=INDEX_NAME, id=file_name, document={"col_pali_vectors": vectors, "image": imageb64})
+            yield {"_index": index_name, "col_pali_vectors": vectors, "image": imageb64, "pdf": pdf_name}
+            # print(vectors)
 
 def main():
     # Get the command-line arguments
@@ -137,9 +139,11 @@ def main():
         es.indices.create(index=INDEX_NAME, body=mappings)
 
     # Recursively walk through directories to find all PDF files
-    plain_imgs_dirs = set()
+    images_list = []
     for root, dirs, files in os.walk(pdf_path):
+        images = []
         for pdf_file in files:
+
             if pdf_file.lower().endswith('.pdf'):
                 pdf_fqpath = os.path.join(root, pdf_file)
                 # Use a temporary directory as output_folder
@@ -154,19 +158,24 @@ def main():
                 batch_size = 10
                 batch = []
                 total = 0
-                for file_name in os.listdir(output_folder):
+                files_in_folder = os.listdir(output_folder)
+                for idx, file_name in enumerate(files_in_folder):
                     batch.append(file_name)
-                    if len(batch) == batch_size:
+                    # Check if batch is full or if this is the last file
+                    if len(batch) == batch_size or idx == len(files_in_folder) - 1:
                         helpers.bulk(es, index_it(INDEX_NAME, pdf_file, output_folder, batch))
-                        total += batch_size
+                        total += len(batch)
                         print(f"done with {total}")
                         batch = []
 
             if pdf_file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                plain_imgs_dirs.add(root)
+                images.append(pdf_file)
 
-    for dir in plain_imgs_dirs:
-        helpers.bulk(es, index_it(INDEX_NAME, "", dir))
+        if len(images) > 0:
+            images_list.append({"dir": root, "images": images})
+
+    for imgdir in images_list:
+        helpers.bulk(es, index_it(INDEX_NAME, "", imgdir["dir"], imgdir["images"]))
 
 if __name__ == "__main__":
     main()
