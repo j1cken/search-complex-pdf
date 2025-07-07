@@ -5,128 +5,128 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Search complex PDF (text and graphics)</title>
         <style>
-            body {
-                background-color: #f4f4f9;
-                color: #333;
-                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 20px;
-            }
-            .search-container {
-                margin-top: 50px;
-                text-align: center;
-            }
-            input[type="text"] {
-                padding: 10px;
-                width: 300px;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                margin-right: 10px;
-            }
-            button {
-                padding: 10px 20px;
-                border: none;
-                border-radius: 5px;
-                background-color: #007bff;
-                color: #fff;
-                cursor: pointer;
-            }
-            button:hover {
-                background-color: #0056b3;
-            }
-            .results {
-                margin-top: 30px;
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 20px;
-            }
-            .results img {
-                width: 250px;
-                height: auto;
-                margin: 10px;
-                border-radius: 5px;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-                cursor: pointer;
-                transition:
-                    transform 0.2s,
-                    box-shadow 0.3s ease;
-            }
-            .results img:hover {
-                transform: scale(1.2);
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            }
-            .modal {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.8);
-                justify-content: center;
-                align-items: center;
-                z-index: 1000;
-                transition: opacity 0.3s ease;
-            }
-            .modal img {
-                width: auto;
-                height: 70%;
-                max-width: 90%;
-                max-height: 90%;
-                border-radius: 5px;
-                transition: transform 0.3s ease-in-out;
-            }
-            .modal .close {
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                color: #fff;
-                font-size: 30px;
-                cursor: pointer;
-            }
-            .modal.show {
-                display: flex;
-                opacity: 1;
-            }
-            .modal.hide {
-                display: none;
-                opacity: 0;
-            }
-            .response-text {
-                margin-top: 200px; /* Increase margin to move it lower */
-                text-align: center;
-                max-width: 1300px; /* Increase max-width for broader box */
-                font-size: 14px;
-                line-height: 1.5;
-                padding: 20px; /* Add padding for better readability */
-                background-color: #fff; /* Optional: Add background color */
-                border-radius: 8px; /* Optional: Add border radius */
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add shadow */
-            }
-            .response-header {
-                font-size: 24px;
-                font-weight: bold;
-                margin-bottom: 10px;
-            }
+        body {
+            background-color: #f4f4f9;
+            color: #333;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .search-container {
+            margin-top: 5px;
+            text-align: center;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .results img {
+            width: 250px;
+            height: auto;
+            margin: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition:
+            transform 0.2s,
+            box-shadow 0.3s ease;
+        }
+        .results img:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+        .modal img {
+            width: auto;
+            height: 70%;
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 5px;
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal .close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            font-size: 30px;
+            cursor: pointer;
+        }
+        .modal.show {
+            display: flex;
+            opacity: 1;
+        }
+        .modal.hide {
+            display: none;
+            opacity: 0;
+        }
+        .response-text {
+            margin-top: 20px; /* Increase margin to move it lower */
+            text-align: center;
+            max-width: 1300px; /* Increase max-width for broader box */
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 20px; /* Add padding for better readability */
+            background-color: #fff; /* Optional: Add background color */
+            border-radius: 8px; /* Optional: Add border radius */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add shadow */
+        }
+        .response-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
         </style>
     </head>
     <body>
         <div class="search-container">
             <h1>Search complex PDF (text and graphics)</h1>
             <form id="searchForm">
-            <select id="indexSelect" name="index" class="form-control">
-                <!-- Will be populated from the server -->
-            </select>
-            <script>
+                <select id="indexSelect" name="index" class="form-control">
+                    <!-- Will be populated from the server -->
+                </select>
+                <script>
                 // Fetch available indices when page loads
                 document.addEventListener('DOMContentLoaded', function() {
                     fetch('/indices')
                         .then(response => response.json())
                         .then(data => {
-                          // console.log(data)
+                            // console.log(data)
                             const indexSelect = document.getElementById('indexSelect');
                             indexSelect.innerHTML = '';
 
@@ -144,29 +144,15 @@
                             console.error('Error fetching indices:', error);
                         });
                 });
-            </script>
+                </script>
 
-            <br id="searchForm">
+                <br/>
                 <input
                     type="text"
                     name="search_string"
                     placeholder="Enter search string"
                 />
                 <button type="submit">Search</button>
-                </br>
-                <input
-                    type="checkbox"
-                    name="llm"
-                    placeholder="Should LLM respond"
-                />
-                <label for="llm">LLM?</label>
-                <!-- <input
-                    type="checkbox"
-                    name="refresh_indices"
-                    placeholder="Refresh indices?"
-                />
-                <label for="refresh_indices">Refresh indices?</label> -->
-
             </form>
         </div>
 
@@ -177,6 +163,20 @@
 
         <div class="results" id="results"></div>
 
+        <div class="search-container">
+            <form id="summaryForm">
+                <br id="summaryForm">
+                <select id="listbox" name="numdocs" size="1" style="width: 100px;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+                <button type="submit" disabled>Summarize</button>
+                </br>
+            </form>
+        </div>
         <div class="response-text" id="responseText">
             <div class="response-header">LLM summary</div>
             <div id="responseContent"></div>
@@ -188,90 +188,113 @@
         </div>
 
         <script>
-            document
-                .getElementById("searchForm")
-                .addEventListener("submit", function (event) {
-                    event.preventDefault();
-                    const formData = new FormData(this);
-                    fetch("/", {
-                        method: "POST",
-                        body: formData,
-                    })
-                        .then((response) => response.json())
-                        .then((data) => {
-                            const esTimeContent =
-                              document.getElementById("esTimeContent");
-                            esTimeContent.textContent = "Query Time";
-                            const esTimeDiv = document.createElement("div");
-                            // Display the Elasticsearch response time
-                            esTimeDiv.textContent = `${data.es_time.toFixed(2)} seconds\n`;
-                            esTimeContent.appendChild(esTimeDiv);
+        document
+            .getElementById("summaryForm")
+            .addEventListener("submit", function (event) {
+                event.preventDefault();
+                const formData = new FormData(this);
 
-                            const resultsDiv =
-                                document.getElementById("results");
-                            resultsDiv.innerHTML = "";
-
-                            data.images.forEach((filename, index) => {
-                                const img = document.createElement("img");
-                                img.src = `data:image/jpeg;base64,${data.images[index]}`;
-                                img.onclick = () =>
-                                    showModal(
-                                        `data:image/jpeg;base64,${data.images[index]}`,
-                                    );
-
-                                // Create a container for the image and label
-                                const container = document.createElement("div");
-                                container.style.display = "flex";
-                                container.style.flexDirection = "column";
-                                container.style.alignItems = "center";
-
-                                // Add the image to the container
-                                container.appendChild(img);
-
-                                // Add a label with the score
-                                const label = document.createElement("div");
-                                label.textContent = `${data.pdfs[index]} | ${data.img_scores[index]}`;
-                                label.style.marginTop = "5px";
-                                label.style.fontSize = "12px";
-                                container.appendChild(label);
-
-                                // Add the container to the results
-                                resultsDiv.appendChild(container);
-                            });
-
-                            // Display the Google Gemini response text and time
-                            const responseContent =
-                                document.getElementById("responseContent");
-                            responseContent.textContent = data.response_text;
-                            const googleTimeDiv = document.createElement("div");
-                            googleTimeDiv.textContent = `\n${data.llm_model} response time: ${data.google_time.toFixed(2)} seconds`;
-                            responseContent.appendChild(googleTimeDiv);
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching images:", error);
-                        });
+                fetch("/summarize", {
+                    method: "POST",
+                    body: formData,
+                    credentials: 'same-origin' // or 'include' if cross-origin
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    // Display the Google Gemini response text and time
+                    const responseContent =
+                        document.getElementById("responseContent");
+                    responseContent.textContent = data.response_text;
+                    const googleTimeDiv = document.createElement("div");
+                    googleTimeDiv.textContent = `\n${data.llm_model} response time: ${data.google_time.toFixed(2)} seconds`;
+                    responseContent.appendChild(googleTimeDiv);
+                })
+                .catch((error) => {
+                    console.error("Error fetching llm summary:", error);
                 });
+            });
+        document
+            .getElementById("searchForm")
+            .addEventListener("submit", function (event) {
+                event.preventDefault();
+                const formData = new FormData(this);
+                fetch("/", {
+                    method: "POST",
+                    body: formData,
+                    credentials: 'same-origin' // or 'include' if cross-origin
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    // console.log("got data " + data);
+                    // Enable the Summarize button in summaryForm
+                    document.querySelector('#summaryForm button[type="submit"]').disabled = false;
 
-            function showModal(src) {
-                const modal = document.getElementById("modal");
-                const modalImage = document.getElementById("modalImage");
-                modalImage.src = src;
-                modal.classList.add("show");
-                modal.classList.remove("hide");
+                    const esTimeContent =
+                        document.getElementById("esTimeContent");
+                    esTimeContent.textContent = "Query Time";
+                    const esTimeDiv = document.createElement("div");
+                    // Display the Elasticsearch response time
+                    esTimeDiv.textContent = `${data.es_time.toFixed(2)} seconds\n`;
+                    esTimeContent.appendChild(esTimeDiv);
+
+                    const resultsDiv =
+                        document.getElementById("results");
+                    resultsDiv.innerHTML = "";
+
+                    data.images.forEach((filename, index) => {
+                        const img = document.createElement("img");
+                        img.src = `data:image/jpeg;base64,${data.images[index]}`;
+                        img.onclick = () =>
+                            showModal(
+                                `data:image/jpeg;base64,${data.images[index]}`,
+                            );
+
+                        // Create a container for the image and label
+                        const container = document.createElement("div");
+                        container.style.display = "flex";
+                        container.style.flexDirection = "column";
+                        container.style.alignItems = "center";
+
+                        // Add the image to the container
+                        container.appendChild(img);
+
+                        // Add a label with the score
+                        const label = document.createElement("div");
+                        label.textContent = `${data.pdfs[index]} | ${data.img_scores[index]}`;
+                        label.style.marginTop = "5px";
+                        label.style.fontSize = "12px";
+                        container.appendChild(label);
+
+                        // Add the container to the results
+                        resultsDiv.appendChild(container);
+                    });
+
+                })
+                .catch((error) => {
+                    console.error("Error fetching images:", error);
+                });
+            });
+
+        function showModal(src) {
+            const modal = document.getElementById("modal");
+            const modalImage = document.getElementById("modalImage");
+            modalImage.src = src;
+            modal.classList.add("show");
+            modal.classList.remove("hide");
+        }
+
+        document.getElementById("closeModal").onclick = function () {
+            const modal = document.getElementById("modal");
+            modal.classList.add("hide");
+            setTimeout(() => modal.classList.remove("show"), 300);
+        };
+
+        document.getElementById("modal").onclick = function (event) {
+            if (event.target === this) {
+                this.classList.add("hide");
+                setTimeout(() => this.classList.remove("show"), 300);
             }
-
-            document.getElementById("closeModal").onclick = function () {
-                const modal = document.getElementById("modal");
-                modal.classList.add("hide");
-                setTimeout(() => modal.classList.remove("show"), 300);
-            };
-
-            document.getElementById("modal").onclick = function (event) {
-                if (event.target === this) {
-                    this.classList.add("hide");
-                    setTimeout(() => this.classList.remove("show"), 300);
-                }
-            };
+        };
         </script>
     </body>
 </html>

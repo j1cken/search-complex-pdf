@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 import torch
 from colpali_engine.models import ColPali, ColPaliProcessor
 from elasticsearch import Elasticsearch
@@ -12,13 +12,14 @@ import base64
 import io
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 load_dotenv("elastic.env")
 es_url = os.getenv("elastic_url")
 es_api_key = os.getenv("elastic_api_key")
 ollama_host = os.getenv("ollama_host")
 
-es = Elasticsearch(es_url, api_key=es_api_key, verify_certs=True)
+es = Elasticsearch(es_url, api_key=es_api_key, verify_certs=False)
 
 model_name = "vidore/colpali-v1.3"
 model = ColPali.from_pretrained(
@@ -56,8 +57,9 @@ def get_es_indices():
 def index():
     if request.method == 'POST':
         query = request.form.get('search_string')
-        llm = request.form.get('llm')
+        session['search_str'] = query
         index_name = request.form.get('index')
+        session['index_name'] = index_name
         # print(index_name)
 
         query_vec = create_col_pali_query_vectors(query)
@@ -83,50 +85,79 @@ def index():
 
         # print(results["hits"]['hits'])
         images_base64 = [hit['_source']['image'] for hit in results['hits']['hits']]
+        image_ids = [hit['_id'] for hit in results['hits']['hits']]
+        session['image_ids'] = image_ids
         pdfs = [hit['_source']['pdf'] for hit in results['hits']['hits']]
         image_scores = [hit['_score'] for hit in results['hits']['hits']]
         # print(image_scores)
 
-        # Measure Google Gemini query time
-        google_time = 0
-        rsptext = ""
-        # ollama_model = "llava:13b"  # or another multimodal model available in Ollama
-        # ollama_model = "llava-llama3:8b"  # or another multimodal model available in Ollama
-        ollama_model = "minicpm-v:8b"  # or another multimodal model available in Ollama
-
-        if llm:
-            start_time = time.time()
-
-            # images = [Image.open(io.BytesIO(base64.b64decode(img_base64))) for img_base64 in images_base64]
-
-            # Send images to Ollama chat API to generate a summary
-            import requests
-
-            ollama_url = f"http://{ollama_host}:11434/api/generate"
-
-            ollama_payload = {
-                "model": ollama_model,
-                "role": "user",
-                "prompt": f"Answer this question: {query}. Use the images only.",
-                "stream": False,
-                "images": images_base64[:1],
-            }
-
-            try:
-                ollama_response = requests.post(ollama_url, json=ollama_payload, timeout=60)
-                ollama_response.raise_for_status()
-                # print(ollama_response.json())
-                ollama_summary = ollama_response.json().get("response", {})
-            except Exception as e:
-                ollama_summary = f"Ollama error: {e}"
-
-            rsptext = ollama_summary
-            google_time = time.time() - start_time
-
         # Return file paths and response times
-        return jsonify(index=index_name, pdfs=pdfs, images=images_base64, response_text=rsptext, es_time=es_time, google_time=google_time, img_scores=image_scores, llm_model=ollama_model)
+        return jsonify(index=index_name, pdfs=pdfs, images=images_base64, img_scores=image_scores, es_time=es_time)
 
     return render_template('index.html', pdfs=[], images=[], response_text="", es_time=0, google_time=0, img_scores=[])
+
+@app.route('/summarize', methods=['POST'])
+def llm():
+    query = session.get('search_str')
+    num_docs = int(request.form.get('numdocs'))
+
+    image_ids = session.get('image_ids', [])
+    if not image_ids:
+        return jsonify(response_text="No images found in session. Please perform a search first.", google_time=0, llm_model="N/A")
+
+    # Fetch the images from Elasticsearch using the IDs
+    images_base64 = []
+    index_name = session.get('index_name')
+    # Use Elasticsearch mget for bulk get
+    mget_body = {
+        "ids": image_ids[:num_docs]
+    }
+    docs = es.mget(index=index_name, body=mget_body)
+    for doc in docs['docs']:
+        if doc.get('found'):
+            images_base64.append(doc['_source']['image'])
+
+    # Measure Google Gemini query time
+    google_time = 0
+    rsptext = ""
+    # ollama_model = "llava:13b"  # or another multimodal model available in Ollama
+    # ollama_model = "llava-llama3:8b"  # or another multimodal model available in Ollama
+    ollama_model = "minicpm-v:8b"  # or another multimodal model available in Ollama
+    #ollama_model = "gemma3:4b"  # or another multimodal model available in Ollama
+    ollama_model = "gemma3:27b"  # or another multimodal model available in Ollama
+    ollama_model = "qwen2.5vl:7b"  # or another multimodal model available in Ollama
+    ollama_model = "llava:13b"  # or another multimodal model available in Ollama
+
+    # if llm:
+    start_time = time.time()
+
+    # images = [Image.open(io.BytesIO(base64.b64decode(img_base64))) for img_base64 in images_base64]
+
+    # Send images to Ollama chat API to generate a summary
+    import requests
+    ollama_url = f"http://{ollama_host}:11434/api/generate"
+
+    ollama_payload = {
+        "model": ollama_model,
+        "role": "user",
+        "prompt": f"Answer this question: {query}. Use the images only. Create a summary.",
+        "stream": False,
+        "images": images_base64,
+    }
+
+    try:
+        ollama_response = requests.post(ollama_url, json=ollama_payload, timeout=60)
+        ollama_response.raise_for_status()
+        # print(ollama_response.json())
+        ollama_summary = ollama_response.json().get("response", {})
+    except Exception as e:
+        ollama_summary = f"Ollama error: {e}"
+
+    rsptext = ollama_summary
+    google_time = time.time() - start_time
+
+    return jsonify(response_text=rsptext, google_time=google_time, llm_model=ollama_model)
+
 
 if __name__ == '__main__':
     app.run(port=8000,debug=False)
